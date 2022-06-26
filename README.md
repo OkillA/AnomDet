@@ -1,0 +1,2 @@
+# AnomDet
+Anomalous image detection
