@@ -163,9 +163,9 @@ class Anomdet:
         
     
     # Training XGBRegressor. Unlike svdd and glosh xgbr performs well with balanced data sets 
-    def xgbrl(self):
+    def xgbrl(self,all_features):
         self.lab = np.concatenate((np.ones((self.n_of_good, )), np.zeros((self.n_of_bad, ))), axis=0)
-        data_dmatrix = xgb.DMatrix(data=self.all_features,label=self.lab)
+        data_dmatrix = xgb.DMatrix(data=all_features,label=self.lab)
         
         
         # Parameter dictionary specifying base learner
