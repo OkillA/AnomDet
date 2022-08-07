@@ -1,16 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul 13 09:06:05 2022
-
-@author: arun
-"""
-
-#!/usr/bin/env python
-# coding: utf-8
-
-
-
 import numpy as np 
 import pandas as pd
 import os
@@ -35,8 +22,6 @@ from sklearn.svm import OneClassSVM
 from sklearn.metrics import accuracy_score,confusion_matrix,f1_score, classification_report
 from sklearn.ensemble import BaggingClassifier
 from sklearn.tree import DecisionTreeClassifier
-
-
 
 
 class Anomdet:
@@ -163,23 +148,19 @@ class Anomdet:
         
     
     # Training XGBRegressor. Unlike svdd and glosh xgbr performs well with balanced data sets 
-    def xgbrl(self,all_features):
+    def xgbrl(self):
         self.lab = np.concatenate((np.ones((self.n_of_good, )), np.zeros((self.n_of_bad, ))), axis=0)
-        data_dmatrix = xgb.DMatrix(data=all_features,label=self.lab)
+        data_dmatrix = xgb.DMatrix(data=self.all_features,label=self.lab)
         
         
         # Parameter dictionary specifying base learner
         param = {"booster":"gblinear", "objective":"reg:linear"}
          
         self.xgb_r = xgb.train(params = param, dtrain = data_dmatrix, num_boost_round = 10)
-        
-
-
-
-
-
-
-
+    
+    
+    
+    
 # Simple SVDD with multiple feture sets as inputs
 
 # Instance with training and test data sets as inputs
@@ -233,12 +214,9 @@ allpred_features = np.array(imagepred_df)
 
 # Predicting with the test features
 predicty = []
-predicty = a1.osvm_model.predict(alltest_features)
+predicty = a1.osvm_model.predict(allpred_features)
 # Since outliers are labeled as -1 in svdd and glosh
-pred1 = [0 if i==-1 else 1 for i in temp]
-
-
-
+pred1 = [0 if i==-1 else 1 for i in predicty]
 
 
 
@@ -293,7 +271,6 @@ print('Confusion matrix:\n',confusion_matrix(pred1,truth))
 
 
 
-
 # Individual feature extraction for ensmeble models
 a1 = Anomdet()
 
@@ -314,9 +291,9 @@ a1.svdtrain(alltrain_features)
 testdata=[]
 g1 = len(os.listdir("fin_data/goodt/"))
 b1 = len(os.listdir("fin_data/badt/"))
-goodtdata = a2.getdata("fin_data/goodt/",[1,0,0,0,0])
+goodtdata = a1.getdata("fin_data/goodt/",[1,0,0,0,0])
 testdata = testdata.append(goodtdata)
-badtdata = a2.getdata("fin_data/badt/",[1,0,0,0,0])
+badtdata = a1.getdata("fin_data/badt/",[1,0,0,0,0])
 testdata = testdata.append(badtdata)
 
 imaget_df = pd.DataFrame(testdata)
@@ -349,9 +326,9 @@ alltrain_features = np.array(image_df)
 # Fitting an svdd with the given training data 
 a1.svdtrain(alltrain_features)
 
-goodtdata = a2.getdata("fin_data/goodt/",[0,1,0,0,0])
+goodtdata = a1.getdata("fin_data/goodt/",[0,1,0,0,0])
 testdata = testdata.append(goodtdata)
-badtdata = a2.getdata("fin_data/badt/",[0,1,0,0,0])
+badtdata = a1.getdata("fin_data/badt/",[0,1,0,0,0])
 testdata = testdata.append(badtdata)
 
 imaget_df = pd.DataFrame(testdata)
@@ -384,9 +361,9 @@ alltrain_features = np.array(image_df)
 # Fitting an svdd with the given training data 
 a1.svdtrain(alltrain_features)
 
-goodtdata = a2.getdata("fin_data/goodt/",[0,0,1,0,0])
+goodtdata = a1.getdata("fin_data/goodt/",[0,0,1,0,0])
 testdata = testdata.append(goodtdata)
-badtdata = a2.getdata("fin_data/badt/",[0,0,1,0,0])
+badtdata = a1.getdata("fin_data/badt/",[0,0,1,0,0])
 testdata = testdata.append(badtdata)
 
 imaget_df = pd.DataFrame(testdata)
@@ -419,9 +396,9 @@ alltrain_features = np.array(image_df)
 # Fitting an svdd with the given training data 
 a1.svdtrain(alltrain_features)
 
-goodtdata = a2.getdata("fin_data/goodt/",[0,0,0,1,0])
+goodtdata = a1.getdata("fin_data/goodt/",[0,0,0,1,0])
 testdata = testdata.append(goodtdata)
-badtdata = a2.getdata("fin_data/badt/",[0,0,0,1,0])
+badtdata = a1.getdata("fin_data/badt/",[0,0,0,1,0])
 testdata = testdata.append(badtdata)
 
 imaget_df = pd.DataFrame(testdata)
@@ -454,9 +431,9 @@ alltrain_features = np.array(image_df)
 # Fitting an svdd with the given training data 
 a1.svdtrain(alltrain_features)
 
-goodtdata = a2.getdata("fin_data/goodt/",[0,0,0,0,1])
+goodtdata = a1.getdata("fin_data/goodt/",[0,0,0,0,1])
 testdata = testdata.append(goodtdata)
-badtdata = a2.getdata("fin_data/badt/",[0,0,0,0,1])
+badtdata = a1.getdata("fin_data/badt/",[0,0,0,0,1])
 testdata = testdata.append(badtdata)
 
 imaget_df = pd.DataFrame(testdata)
@@ -486,22 +463,18 @@ print('Confusion matrix:\n',confusion_matrix(pred1,truth))
 
 
 
-
-
 # generating training data dor ensemble
 ensfeat = []
 for i in range(a1.total_test_num):
     temp = [pred1[i],pred2[i],pred3[i],pred4[i],pred5[i],pred6[i],pred7[i],pred8[i],pred9[i],pred10[i]]
     ensfeat.append(temp)
-
-
-
-
-
-
-
-
-# The ensemble takes outputs from individual classifiers and their respective labels  as inputs 
+    
+    
+    
+    
+    
+    
+    # The ensemble takes outputs from individual classifiers and their respective labels  as inputs 
 
 class EnsmebleMod:
     def __init__(self, preds, truths):
@@ -545,20 +518,206 @@ class EnsmebleMod:
         base_cls = DecisionTreeClassifier()
         self.model = BaggingClassifier(base_estimator = base_cls, n_estimators = 500, random_state = 8)
         self.model.fit(X_train,y_train)
-    
         
-    
-
-
-
-
-
-
-
-#Creating an instance of EnsembleMod
+        
+        
+        
+        
+        
+        #Creating an instance of EnsembleMod
 e1 = EnsmebleMod(ensfeat, truth)
 
 # NN ensemble
 e1.mlpc()
+
+
+
+
+# Individual feature extraction for ensmeble models
+a3 = Anomdet()
+
+# Feature selector given in the form of an array
+traindata=[]
+gooddata = a1.getdata("fin_data/good/",[1,0,0,0,0])
+traindata = traindata.append(gooddata)
+baddata = a1.getdata("fin_data/bad/",[1,0,0,0,0])
+traindata = traindata.append(baddata)
+
+image_df = pd.DataFrame(traindata)
+image_df.drop(0,axis=1,inplace=True)
+alltrain_features = np.array(image_df)
+
+# Fitting an svdd with the given training data 
+a1.svdtrain(alltrain_features)
+
+testdata=[]
+g1 = len(os.listdir(Y))
+
+testdata = a1.getdata(Y,[1,0,0,0,0])
+
+
+imaget_df = pd.DataFrame(testdata)
+imaget_df.drop(0,axis=1,inplace=True)
+alltest_features = np.array(imaget_df)
+
+temp = []
+temp = a1.svm_model.predict(a1.alltest_features)
+
+pred1 = [0 if i==-1 else 1 for i in temp]
+
+# Fitting an glosh with the given training data 
+a1.glosh(alltrain_features)
+temp = []
+temp = a1.clusters.fit_predict(alltest_features)
+# Since outliers are labeled as -1 in svdd and glosh
+pred6 = [0 if i==-1 else 1 for i in temp]
+
+# Feature selector given in the form of an array
+traindata=[]
+gooddata = a1.getdata("fin_data/good/",[0,1,0,0,0])
+traindata = traindata.append(gooddata)
+baddata = a1.getdata("fin_data/bad/",[0,1,0,0,0])
+traindata = traindata.append(baddata)
+
+image_df = pd.DataFrame(traindata)
+image_df.drop(0,axis=1,inplace=True)
+alltrain_features = np.array(image_df)
+
+# Fitting an svdd with the given training data 
+a1.svdtrain(alltrain_features)
+
+testdata = a1.getdata(Y,[0,1,0,0,0])
+testdata = testdata.append(goodtdata)
+
+imaget_df = pd.DataFrame(testdata)
+imaget_df.drop(0,axis=1,inplace=True)
+alltest_features = np.array(imaget_df)
+
+temp = []
+temp = a1.svm_model.predict(a1.alltest_features)
+
+pred2 = [0 if i==-1 else 1 for i in temp]
+
+# Fitting an glosh with the given training data 
+a1.glosh(alltrain_features)
+temp = []
+temp = a1.clusters.fit_predict(alltest_features)
+# Since outliers are labeled as -1 in svdd and glosh
+pred7 = [0 if i==-1 else 1 for i in temp]
+
+# Feature selector given in the form of an array
+traindata=[]
+gooddata = a1.getdata("fin_data/good/",[0,0,1,0,0])
+traindata = traindata.append(gooddata)
+baddata = a1.getdata("fin_data/bad/",[0,0,1,0,0])
+traindata = traindata.append(baddata)
+
+image_df = pd.DataFrame(traindata)
+image_df.drop(0,axis=1,inplace=True)
+alltrain_features = np.array(image_df)
+
+# Fitting an svdd with the given training data 
+a1.svdtrain(alltrain_features)
+
+testdata = a1.getdata(Y,[0,0,1,0,0])
+
+
+imaget_df = pd.DataFrame(testdata)
+imaget_df.drop(0,axis=1,inplace=True)
+alltest_features = np.array(imaget_df)
+
+temp = []
+temp = a1.svm_model.predict(a1.alltest_features)
+
+pred3 = [0 if i==-1 else 1 for i in temp]
+
+# Fitting an glosh with the given training data 
+a1.glosh(alltrain_features)
+temp = []
+temp = a1.clusters.fit_predict(alltest_features)
+# Since outliers are labeled as -1 in svdd and glosh
+pred8 = [0 if i==-1 else 1 for i in temp]
+
+# Feature selector given in the form of an array
+traindata=[]
+gooddata = a1.getdata("fin_data/good/",[0,0,0,1,0])
+traindata = traindata.append(gooddata)
+baddata = a1.getdata("fin_data/bad/",[0,0,0,1,0])
+traindata = traindata.append(baddata)
+
+image_df = pd.DataFrame(traindata)
+image_df.drop(0,axis=1,inplace=True)
+alltrain_features = np.array(image_df)
+
+# Fitting an svdd with the given training data 
+a1.svdtrain(alltrain_features)
+
+testdata = a1.getdata(Y,[0,0,0,1,0])
+
+
+imaget_df = pd.DataFrame(testdata)
+imaget_df.drop(0,axis=1,inplace=True)
+alltest_features = np.array(imaget_df)
+
+temp = []
+temp = a1.svm_model.predict(a1.alltest_features)
+
+pred4 = [0 if i==-1 else 1 for i in temp]
+
+# Fitting an glosh with the given training data 
+a1.glosh(alltrain_features)
+temp = []
+temp = a1.clusters.fit_predict(alltest_features)
+# Since outliers are labeled as -1 in svdd and glosh
+pred9 = [0 if i==-1 else 1 for i in temp]
+
+# Feature selector given in the form of an array
+traindata=[]
+gooddata = a1.getdata("fin_data/good/",[0,0,0,0,1])
+traindata = traindata.append(gooddata)
+baddata = a1.getdata("fin_data/bad/",[0,0,0,0,1])
+traindata = traindata.append(baddata)
+
+image_df = pd.DataFrame(traindata)
+image_df.drop(0,axis=1,inplace=True)
+alltrain_features = np.array(image_df)
+
+# Fitting an svdd with the given training data 
+a1.svdtrain(alltrain_features)
+
+testdata = a1.getdata(Y,[0,0,0,0,1])
+
+
+
+imaget_df = pd.DataFrame(testdata)
+imaget_df.drop(0,axis=1,inplace=True)
+alltest_features = np.array(imaget_df)
+
+
+temp = []
+temp = a1.svm_model.predict(a1.alltest_features)
+
+pred5 = [0 if i==-1 else 1 for i in temp]
+
+# Fitting an glosh with the given training data 
+a1.glosh(alltrain_features)
+temp = []
+temp = a1.clusters.fit_predict(alltest_features)
+# Since outliers are labeled as -1 in svdd and glosh
+pred10 = [0 if i==-1 else 1 for i in temp]
+
+ensfeat = []
+for i in range(a1.total_test_num):
+    temp = [pred1[i],pred2[i],pred3[i],pred4[i],pred5[i],pred6[i],pred7[i],pred8[i],pred9[i],pred10[i]]
+    ensfeat.append(temp)
+
+# Performance
+print('Accuracy:',accuracy_score(pred1,truth))
+print('Confusion matrix:\n',confusion_matrix(pred1,truth))
+
+# To predict anomalous images in a dataset Y
+prediction = e1.clf.predict(ensfeat)
+
+
 
 
