@@ -1,7 +1,7 @@
 
 # Detection of Anomalous Images
 
-Detecting anomlous images from a large dataset of facial images of human subjects primarily using statistical and probablistic methods.
+Detecting anomalous images from a large dataset of facial images of human subjects primarily using statistical and probablistic methods.
 
 ## Get Started
 
