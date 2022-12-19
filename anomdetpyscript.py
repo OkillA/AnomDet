@@ -10,7 +10,7 @@ import pywt
 import skimage.measure
 import mahotas as mt
 from skimage.filters import laplace, sobel, gabor_kernel, prewitt_h,prewitt_v
-#from skimage.io import imread, imshow
+#from skimage.io import imread,imshow
 from skimage.color import rgb2hsv, rgb2gray, rgb2yuv
 from sklearn.decomposition import PCA
 from skimage.transform import resize
