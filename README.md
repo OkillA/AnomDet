@@ -1,4 +1,3 @@
-
 # Detection of Anomalous Images
 
 Detecting anomalous images from a large dataset of facial images of human subjects,
@@ -70,7 +69,7 @@ Summary: 120 images → 14 anomalies, 106 normal.
 
 ```python
 import numpy as np
-from anomdet import Anomdet, EnsembleMod, load_features, ALL_FEATURES
+from anomdet import Anomdet, load_features
 
 # ── Feature extraction ──────────────────────────────────────────────────────
 # feature_selector = [edge, haralick, orb, hog, dwt]
@@ -85,25 +84,15 @@ test_all  = np.vstack([test_good, test_bad])
 # ── SVDD ────────────────────────────────────────────────────────────────────
 det = Anomdet()
 det.svdtrain(train_all)
-preds = det.svdd_predict(test_all)   # list of 0/1
+preds = det.svdd_predict(test_all)   # list of 0/1  (1 = normal, 0 = anomaly)
 
 # ── GLOSH ───────────────────────────────────────────────────────────────────
 det.glosh(train_all)
 preds = det.glosh_predict(test_all)  # list of 0/1
-
-# ── Ensemble ─────────────────────────────────────────────────────────────────
-# Stack predictions from multiple feature types / classifiers
-ens_features = np.column_stack([pred_svdd_edge, pred_glosh_edge,
-                                pred_svdd_haralick, ...])
-truth = np.concatenate([np.ones(len(test_good)), np.zeros(len(test_bad))])
-
-ens = EnsembleMod(ens_features, truth)
-ens.mlpc()   # MLP (sets ens.clf)
-ens.xgbr()   # XGBoost
-ens.bagg()   # Bagging
-
-prediction = ens.predict(new_ens_features)
 ```
+
+> For ensemble training use `train.py --mode ensemble` (CLI) — it runs SVDD + GLOSH
+> per feature type and stacks the predictions in an MLP meta-classifier automatically.
 
 ---
 
