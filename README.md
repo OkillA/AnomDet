@@ -1,98 +1,129 @@
 
 # Detection of Anomalous Images
 
-Detecting anomalous images from a large dataset of facial images of human subjects primarily using statistical and probablistic methods.
+Detecting anomalous images from a large dataset of facial images of human subjects,
+primarily using statistical and probabilistic methods.
 
-## Get Started
+## Install
 
-#### Dependency
-
-- Numpy
-- Pandas
-- cv2
-- scikit-learn
-- mahotas
-- pywt
-- hdbscan
-- scikit-image
-- matplotlib
-- xgboost
-
-#### Data Preperation
-
-Create an instance with four datasets as inputs. The paths for the good training data, anomalous training data, good testing data, and anomalous testing data are to be provided.
-
-```python
-# Initiate an instance 
-a1 = Anomdet()
+```bash
+pip install -r requirements.txt
 ```
 
-#### Feature Selection and Extraction
+## Data Layout
 
-Depending on the method we want to use wether a simple SVDD/GLOSH or an ensemble we can choose the set of features to be extracted. The Array A is used as a feature extractor and a 1 indicates that the corresponding feature is selected while a 0 indicated the opposite.
-
-The features are in the order from A[0] to A[n] and additional features can be extended with similar notation
-
-Feature Extraction is done for each of the dataset and individually and then converted into a data frame which can be used to train or test the classifiers
-
-```python
-# Feature selector given in the form of an array
-
-# select 4 different features to extract from a specific data set
-a1.getdata("fin_data/good/",[1,1,1,0,1])
-
-
-# select 1 different features to extract, this is mainly used for ensemble cases
-a1.getdata("fin_data/good/",[0,1,0,0,0])
+Prepare four image directories:
 
 ```
-
-
-## Training and obtaining predictions
-
-Depending on the model that needs to be implemented we will fit the model by calling the corresponding function. The ```alltrain_features``` variable is the dataframe of training images obtained from the above step
-
-```python
-# To train a SVDD with the predefined dataset
-a1.svdtrain(alltrain_features)
-
-# To fit the HDBSCAN with the training data
-a1.clusters.fit(alltrain_features)
+data/
+├── good_train/    # normal training images
+├── bad_train/     # anomalous training images
+├── good_test/     # normal test images  (used to evaluate)
+└── bad_test/      # anomalous test images (used to evaluate)
 ```
 
-Once the model is fitted testing is done on the fitted model. The testing data can be of any configuration when implementing a simple classifier. But in the case of ensemble implementation its better to have 50% anomaly rate datasets for better performance. 
+Supported formats: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.tiff`
+
+---
+
+## Quick Start (CLI)
+
+### Train
+
+```bash
+# Ensemble mode (recommended) – trains SVDD + GLOSH per feature type, stacked with MLP
+python train.py \
+    --good-train data/good_train/ \
+    --bad-train  data/bad_train/ \
+    --good-test  data/good_test/ \
+    --bad-test   data/bad_test/ \
+    --mode       ensemble \
+    --output     anomdet_model.pkl
+
+# Single-classifier modes
+python train.py ... --mode svdd
+python train.py ... --mode glosh
+```
+
+### Predict
+
+```bash
+python predict.py \
+    --input-dir data/unlabelled/ \
+    --model     anomdet_model.pkl
+```
+
+Output example:
+```
+Predictions (1 = normal, 0 = anomaly):
+  Image                                    Label
+  --------------------------------------------------
+  img001.jpg                               NORMAL
+  img002.jpg                               ANOMALY
+  ...
+Summary: 120 images → 14 anomalies, 106 normal.
+```
+
+---
+
+## Python API
 
 ```python
-# Predicting with the test features
-temp = []
-temp = a1.svm_model.predict(a1.alltest_features)
-# Since outliers are labeled as -1 in svdd and glosh
-pred1 = [0 if i==-1 else 1 for i in pred]
+import numpy as np
+from anomdet import Anomdet, EnsembleMod, load_features, ALL_FEATURES
 
-# actual labels for the images 
-truth = np.concatenate((np.ones((a1.n_of_goodt, )), np.zeros((a1.n_of_badt, ))), axis=0)
+# ── Feature extraction ──────────────────────────────────────────────────────
+# feature_selector = [edge, haralick, orb, hog, dwt]
+train_good = load_features("data/good_train/", [1, 1, 1, 0, 1])
+train_bad  = load_features("data/bad_train/",  [1, 1, 1, 0, 1])
+train_all  = np.vstack([train_good, train_bad])
+
+test_good = load_features("data/good_test/", [1, 1, 1, 0, 1])
+test_bad  = load_features("data/bad_test/",  [1, 1, 1, 0, 1])
+test_all  = np.vstack([test_good, test_bad])
+
+# ── SVDD ────────────────────────────────────────────────────────────────────
+det = Anomdet()
+det.svdtrain(train_all)
+preds = det.svdd_predict(test_all)   # list of 0/1
+
+# ── GLOSH ───────────────────────────────────────────────────────────────────
+det.glosh(train_all)
+preds = det.glosh_predict(test_all)  # list of 0/1
+
+# ── Ensemble ─────────────────────────────────────────────────────────────────
+# Stack predictions from multiple feature types / classifiers
+ens_features = np.column_stack([pred_svdd_edge, pred_glosh_edge,
+                                pred_svdd_haralick, ...])
+truth = np.concatenate([np.ones(len(test_good)), np.zeros(len(test_bad))])
+
+ens = EnsembleMod(ens_features, truth)
+ens.mlpc()   # MLP (sets ens.clf)
+ens.xgbr()   # XGBoost
+ens.bagg()   # Bagging
+
+prediction = ens.predict(new_ens_features)
 ```
-## Ensemble
-A new instance is initiated for the ensemble class function.
 
-The predictions from the individual classifiers are used as features while the truth variable is used as a label for the ensemble model.
+---
 
-Training and testing the ensemble is the same as it is for the classifier and once the model acheives adequate performance the fitted model can be used predict the anomalous nature of the images.
+## Features
 
-```python
-#Creating an instance of EnsembleMod
-e1 = EnsmebleMod(ensfeat, truth)
+| Index | Name      | Description                                   | # features  |
+|-------|-----------|-----------------------------------------------|-------------|
+| 0     | edge      | Laplacian / Sobel / Prewitt statistics        | 12          |
+| 1     | haralick  | Haralick texture (4 directions × 13)          | 52          |
+| 2     | orb       | ORB keypoint count                            | 1           |
+| 3     | hog       | Normalised HOG descriptor                    | variable    |
+| 4     | dwt       | DWT patch energies (db1, 4 subbands)          | variable    |
 
-# XGBoost ensemble
-e1.xgbr()
+## Models
 
-# Bagging ensemble
-e1.bagg()
-
-# Multilayer perceptron 
-e1.mlpc()
-
-# To predict anomalous images in a dataset Y we generate the feature dataframe using the feature extraction step and use that dataframe to predict.
-prediction = e1.clf.predict(Y)
-```
+| Model   | Class / function         | Notes                            |
+|---------|--------------------------|----------------------------------|
+| SVDD    | `Anomdet.svdtrain()`     | One-Class SVM, sigmoid kernel    |
+| GLOSH   | `Anomdet.glosh()`        | HDBSCAN outlier scores           |
+| MLP     | `EnsembleMod.mlpc()`     | Meta-learner over base preds     |
+| XGBoost | `EnsembleMod.xgbr()`     | Linear booster                   |
+| Bagging | `EnsembleMod.bagg()`     | 500 Decision Tree estimators     |
 

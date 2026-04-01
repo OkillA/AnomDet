@@ -1,0 +1,10 @@
+numpy
+pandas
+opencv-python
+scikit-learn
+mahotas
+PyWavelets
+hdbscan
+scikit-image
+matplotlib
+xgboost
