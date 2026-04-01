@@ -32,6 +32,9 @@ from sklearn.tree import DecisionTreeClassifier
 # Supported image extensions
 _IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif")
 
+# Spatial block size used by HOG and DWT patch reduction
+BLOCK_SIZE = (14, 14)
+
 # Feature selector indices
 FEAT_EDGE = 0      # Laplacian / Sobel / Prewitt statistics  (12 features)
 FEAT_HARALICK = 1  # Haralick texture (4 directions × 13 = 52 features)
@@ -116,7 +119,7 @@ def load_features(path: str, feature_selector: list) -> np.ndarray:
             fd, _ = hog(
                 gray,
                 orientations=4,
-                pixels_per_cell=(14, 14),
+                pixels_per_cell=BLOCK_SIZE,
                 cells_per_block=(1, 1),
                 visualize=True,
             )
@@ -129,7 +132,7 @@ def load_features(path: str, feature_selector: list) -> np.ndarray:
             coeffs2 = pywt.dwt2(gray.astype(np.float64), "db1")
             LL, (LH, HL, HH) = coeffs2
             for band in (LL, LH, HL, HH):
-                reduced = skimage.measure.block_reduce(band, (14, 14), np.linalg.norm)
+                reduced = skimage.measure.block_reduce(band, BLOCK_SIZE, np.linalg.norm)
                 norm = np.linalg.norm(reduced)
                 normalized = reduced / norm if norm > 0 else reduced
                 feature.extend(normalized.flatten())
@@ -178,16 +181,26 @@ class Anomdet:
     # ── GLOSH / HDBSCAN ─────────────────────────────────────────────────────
 
     def glosh(self, features: np.ndarray) -> None:
-        """Fit HDBSCAN on *features* (used for GLOSH outlier scores)."""
-        self.clusters = hdbscan.HDBSCAN(min_cluster_size=100)
+        """Fit HDBSCAN on *features* (used for GLOSH outlier scores).
+
+        ``prediction_data=True`` is set so that :meth:`glosh_predict` can
+        classify new points without refitting the clusterer.
+        """
+        self.clusters = hdbscan.HDBSCAN(
+            min_cluster_size=100, prediction_data=True
+        )
         self.clusters.fit(features)
 
     def glosh_predict(self, features: np.ndarray) -> list:
-        """Return binary predictions (1 = normal, 0 = anomaly) from GLOSH."""
+        """Return binary predictions (1 = normal, 0 = anomaly) from GLOSH.
+
+        Uses :func:`hdbscan.approximate_predict` so the trained clustering is
+        not refitted on new data.
+        """
         if self.clusters is None:
             raise RuntimeError("Call glosh() before glosh_predict().")
-        raw = self.clusters.fit_predict(features)
-        return [0 if p == -1 else 1 for p in raw]
+        labels, _ = hdbscan.approximate_predict(self.clusters, features)
+        return [0 if p == -1 else 1 for p in labels]
 
 
 # ---------------------------------------------------------------------------

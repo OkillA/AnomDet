@@ -70,10 +70,11 @@ def main() -> None:
         raw = model.predict(features)
         predictions = [0 if p == -1 else 1 for p in raw]
     elif mode == "glosh":
-        model = model_data["model"]
+        from anomdet import Anomdet as _Anomdet
+        det = _Anomdet()
+        det.clusters = model_data["model"]
         features = load_features(args.input_dir, ALL_FEATURES)
-        raw = model.fit_predict(features)
-        predictions = [0 if p == -1 else 1 for p in raw]
+        predictions = det.glosh_predict(features)
     else:
         raise ValueError(f"Unknown model mode '{mode}'.")
 
